@@ -143,15 +143,15 @@ class RecordedData:
 class Trader:
     LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
     INF = int(1e9)
-    STARFRUIT_CACHE_SIZE = 4
+    STARFRUIT_CACHE_SIZE = 30
     POSITION = {}
 
     def estimate_starfruit_price(self, cache):
-        x = np.array([0, 1, 2, 3])
+        x = np.array([i for i in range(self.STARFRUIT_CACHE_SIZE)])
         y = np.array(cache)
         A = np.vstack([x, np.ones(len(x))]).T
         m, c = np.linalg.lstsq(A, y, rcond=None)[0]
-        return int(round(4 * m + c))
+        return int(round(self.STARFRUIT_CACHE_SIZE * m + c))
 
         # coef = [-0.01869561,  0.0455032 ,  0.16316049,  0.8090892] # 
         # intercept = 4.481696494462085
