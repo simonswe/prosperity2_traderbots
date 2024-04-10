@@ -231,7 +231,7 @@ class Trader:
         conversions = 0
 
         # update our position 
-        for product in state.order_depth:
+        for product in state.order_depths:
             self.POSITION[product] = state.position[product] if product in state.position else 0
 
         if state.traderData == '': # first run, set up data
@@ -246,11 +246,11 @@ class Trader:
             orders: list[Order] = []
             
             if product == "AMETHYSTS":
-                sell_volume = data[product].sell_volume + sum(-amount for _, amount in order_depth.sell_orders.items())
-                buy_volume = data[product].buy_volume + sum(amount for _, amount in order_depth.buy_orders.items())
+                sell_volume = data.amethyst_hvwap.sell_volume + sum(-amount for _, amount in order_depth.sell_orders.items())
+                buy_volume = data.amethyst_hvwap.buy_volume + sum(amount for _, amount in order_depth.buy_orders.items())
 
-                sell_price_volume = data[product].sell_price_volume + sum(price * -amount for price, amount in order_depth.sell_orders.items())
-                buy_price_volume = data[product].buy_price_volume + sum(price * amount for price, amount in order_depth.buy_orders.items())
+                sell_price_volume = data.amethyst_hvwap.sell_price_volume + sum(price * -amount for price, amount in order_depth.sell_orders.items())
+                buy_price_volume = data.amethyst_hvwap.buy_price_volume + sum(price * amount for price, amount in order_depth.buy_orders.items())
 
                 buy_vwap = buy_price_volume/buy_volume if buy_volume != 0 else 0
                 sell_vwap = sell_price_volume/sell_volume if sell_volume != 0 else 0
@@ -258,7 +258,7 @@ class Trader:
                 vwap = (sell_vwap + buy_vwap) / 2 if buy_vwap and sell_vwap else max(sell_vwap, buy_vwap)
 
                 # update historical
-                data[product] = HistoricalVWAP(buy_volume, sell_volume, buy_price_volume, sell_price_volume)
+                data.amethyst_hvwap = HistoricalVWAP(buy_volume, sell_volume, buy_price_volume, sell_price_volume)
                 
                 orders.append(Order(product, math.floor(vwap), self.LIMIT[product]-position))
 
