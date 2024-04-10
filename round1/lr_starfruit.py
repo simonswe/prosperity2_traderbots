@@ -156,7 +156,7 @@ class Trader:
 
     def get_volume_and_best_price(self, orders, buy_order):
         volume = 0
-        best = 0
+        best = 0 if buy_order else self.INF
 
         for price, vol in orders.items():
             if buy_order:
@@ -280,7 +280,13 @@ class Trader:
                     lower_bound = self.estimate_starfruit_price(data.starfruit_cache)-1
                     upper_bound = self.estimate_starfruit_price(data.starfruit_cache)+1
 
+                logger.print(f'lower bound: {lower_bound}')
+                logger.print(f'upper bound: {upper_bound}')
+                
+
                 orders += self.calculate_starfruit_orders(product, order_depth, lower_bound, upper_bound)
+
+                logger.print(f'placed orders: {orders}')
 
 
             result[product] = orders
