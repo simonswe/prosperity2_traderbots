@@ -3,6 +3,7 @@ import jsonpickle
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState
 from typing import Any, OrderedDict
 import math
+import numpy as np
 
 class Logger:
     def __init__(self) -> None:
@@ -146,14 +147,24 @@ class Trader:
     POSITION = {}
 
     def estimate_starfruit_price(self, cache):
-        coef = [-0.01869561,  0.0455032 ,  0.16316049,  0.8090892] # 
-        intercept = 4.481696494462085
-        estimated_price = intercept
-        for i, val in enumerate(cache):
-            estimated_price += val * coef[i]
+        x = np.array([0, 1, 2, 3])
+        y = np.array(cache)
+        A = np.vstack([x, np.ones(len(x))]).T
+        m, c = np.linalg.lstsq(A, y, rcond=None)[0]
+        return int(round(4 * m + c))
 
-        return int(round(estimated_price))
+        # coef = [-0.01869561,  0.0455032 ,  0.16316049,  0.8090892] # 
+        # intercept = 4.481696494462085
+        # estimated_price = intercept
+        # for i, val in enumerate(cache):
+        #     estimated_price += val * coef[i]
 
+        # return int(round(estimated_price))
+
+
+    # gets the total traded volume of each time stamp and best price
+    # best price in buy_orders is the max; best price in sell_orders is the min
+    # buy_order indicates orders are buy or sell orders
     def get_volume_and_best_price(self, orders, buy_order):
         volume = 0
         best = 0 if buy_order else self.INF
@@ -168,6 +179,9 @@ class Trader:
 
         return volume, best
     
+
+    # given estimated bid and ask prices, market take if there are good offers, otherwise market make 
+    # by pennying or placing our bid/ask, whichever is more profitable
     def calculate_starfruit_orders(self, product, order_depth, our_bid, our_ask):
         orders: list[Order] = []
         
@@ -265,6 +279,7 @@ class Trader:
                 orders.append(Order(product, math.ceil(vwap), -self.LIMIT[product]-position))
             
             elif product == "STARFRUIT":
+                # keep the length of starfruit cache as STARFRUIT_CACHE_SIZE
                 if len(data.starfruit_cache) == self.STARFRUIT_CACHE_SIZE:
                     data.starfruit_cache.pop(0)
 
@@ -273,6 +288,7 @@ class Trader:
 
                 data.starfruit_cache.append((best_sell_price+best_buy_price)/2)
 
+                # if cache size is maxed, calculate next price and place orders
                 lower_bound = -self.INF
                 upper_bound = self.INF
 
@@ -288,7 +304,7 @@ class Trader:
 
                 logger.print(f'placed orders: {orders}')
 
-
+            # update orders for current product
             result[product] = orders
 
         traderData = jsonpickle.encode(data)
