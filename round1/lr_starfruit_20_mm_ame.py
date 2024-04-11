@@ -138,6 +138,11 @@ class RecordedData:
     def __init__(self):
         self.amethyst_hvwap = HistoricalVWAP()
         self.starfruit_cache = []
+        self.LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
+        self.INF = int(1e9)
+        self.STARFRUIT_CACHE_SIZE = 20
+        self.AME_RANGE = 2
+        self.POSITION = {'AMETHYSTS' : 0, 'STARFRUIT' : 0}
 
 
 class Trader:
@@ -245,18 +250,23 @@ class Trader:
         result = {}
         conversions = 0
 
-        # update our position 
-        for product in state.order_depths:
-            self.POSITION[product] = state.position[product] if product in state.position else 0
-
         if state.traderData == '': # first run, set up data
             data = RecordedData()
         else:
             data = jsonpickle.decode(state.traderData)
 
+        self.LIMIT = data.LIMIT
+        self.INF = data.INF
+        self.STARFRUIT_CACHE_SIZE = data.STARFRUIT_CACHE_SIZE
+        self.AME_RANGE = data.AME_RANGE
+        self.POSITION = data.POSITION
+
+        # update our position 
+        for product in state.order_depths:
+            self.POSITION[product] = state.position[product] if product in state.position else 0
+
 
         for product in state.order_depths:
-            position = state.position[product] if product in state.position else 0
             order_depth: OrderDepth = state.order_depths[product]
             orders: list[Order] = []
             
