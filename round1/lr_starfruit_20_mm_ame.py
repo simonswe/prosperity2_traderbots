@@ -144,7 +144,7 @@ class Trader:
     LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
     INF = int(1e9)
     STARFRUIT_CACHE_SIZE = 20
-    AME_RANGE = 3
+    AME_RANGE = 2
     POSITION = {}
 
     def estimate_starfruit_price(self, cache):
@@ -278,8 +278,8 @@ class Trader:
                 upper_bound = self.INF
 
                 if len(data.starfruit_cache) == self.STARFRUIT_CACHE_SIZE:
-                    lower_bound = self.estimate_starfruit_price(data.starfruit_cache)-1
-                    upper_bound = self.estimate_starfruit_price(data.starfruit_cache)+1
+                    lower_bound = self.estimate_starfruit_price(data.starfruit_cache)-2
+                    upper_bound = self.estimate_starfruit_price(data.starfruit_cache)+2
 
                 logger.print(f'lower bound: {lower_bound}')
                 logger.print(f'upper bound: {upper_bound}')
