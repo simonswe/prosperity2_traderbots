@@ -143,7 +143,8 @@ class RecordedData:
 class Trader:
     LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
     INF = int(1e9)
-    STARFRUIT_CACHE_SIZE = 30
+    STARFRUIT_CACHE_SIZE = 20
+    AME_RANGE = 3
     POSITION = {}
 
     def estimate_starfruit_price(self, cache):
@@ -182,7 +183,7 @@ class Trader:
 
     # given estimated bid and ask prices, market take if there are good offers, otherwise market make 
     # by pennying or placing our bid/ask, whichever is more profitable
-    def calculate_starfruit_orders(self, product, order_depth, our_bid, our_ask):
+    def calculate_orders(self, product, order_depth, our_bid, our_ask):
         orders: list[Order] = []
         
         sell_orders = OrderedDict(sorted(order_depth.sell_orders.items()))
@@ -260,23 +261,7 @@ class Trader:
             orders: list[Order] = []
             
             if product == "AMETHYSTS":
-                sell_volume = data.amethyst_hvwap.sell_volume + sum(-amount for _, amount in order_depth.sell_orders.items())
-                buy_volume = data.amethyst_hvwap.buy_volume + sum(amount for _, amount in order_depth.buy_orders.items())
-
-                sell_price_volume = data.amethyst_hvwap.sell_price_volume + sum(price * -amount for price, amount in order_depth.sell_orders.items())
-                buy_price_volume = data.amethyst_hvwap.buy_price_volume + sum(price * amount for price, amount in order_depth.buy_orders.items())
-
-                buy_vwap = buy_price_volume/buy_volume if buy_volume != 0 else 0
-                sell_vwap = sell_price_volume/sell_volume if sell_volume != 0 else 0
-
-                vwap = (sell_vwap + buy_vwap) / 2 if buy_vwap and sell_vwap else max(sell_vwap, buy_vwap)
-
-                # update historical
-                data.amethyst_hvwap = HistoricalVWAP(buy_volume, sell_volume, buy_price_volume, sell_price_volume)
-                
-                orders.append(Order(product, math.floor(vwap), self.LIMIT[product]-position))
-
-                orders.append(Order(product, math.ceil(vwap), -self.LIMIT[product]-position))
+                orders += self.calculate_orders(product, order_depth, 10000-self.AME_RANGE, 10000+self.AME_RANGE)
             
             elif product == "STARFRUIT":
                 # keep the length of starfruit cache as STARFRUIT_CACHE_SIZE
@@ -300,7 +285,7 @@ class Trader:
                 logger.print(f'upper bound: {upper_bound}')
                 
 
-                orders += self.calculate_starfruit_orders(product, order_depth, lower_bound, upper_bound)
+                orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
 
                 logger.print(f'placed orders: {orders}')
 
