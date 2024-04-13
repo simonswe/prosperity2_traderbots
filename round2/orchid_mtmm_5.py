@@ -138,18 +138,20 @@ class RecordedData:
     def __init__(self):
         self.amethyst_hvwap = HistoricalVWAP()
         self.starfruit_cache = []
-        self.LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
+        self.LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20, 'ORCHIDS': 100}
         self.INF = int(1e9)
-        self.STARFRUIT_CACHE_SIZE = 20
+        self.STARFRUIT_CACHE_SIZE = 38
         self.AME_RANGE = 2
-        self.POSITION = {'AMETHYSTS' : 0, 'STARFRUIT' : 0}
+        self.POSITION = {'AMETHYSTS' : 0, 'STARFRUIT' : 0, 'ORCHIDS': 0}
+        self.ORCHID_MM_RANGE = 5
 
 
 class Trader:
-    LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20}
+    LIMIT = {'AMETHYSTS' : 20, 'STARFRUIT' : 20, 'ORCHIDS': 100}
     INF = int(1e9)
-    STARFRUIT_CACHE_SIZE = 20
+    STARFRUIT_CACHE_SIZE = 38
     AME_RANGE = 2
+    ORCHID_MM_RANGE = 5
     POSITION = {}
 
     def estimate_starfruit_price(self, cache):
@@ -188,7 +190,7 @@ class Trader:
 
     # given estimated bid and ask prices, market take if there are good offers, otherwise market make 
     # by pennying or placing our bid/ask, whichever is more profitable
-    def calculate_orders(self, product, order_depth, our_bid, our_ask):
+    def calculate_orders(self, product, order_depth, our_bid, our_ask, orchild=False):
         orders: list[Order] = []
         
         sell_orders = OrderedDict(sorted(order_depth.sell_orders.items()))
@@ -196,6 +198,8 @@ class Trader:
 
         sell_vol, best_sell_price = self.get_volume_and_best_price(sell_orders, buy_order=False)
         buy_vol, best_buy_price = self.get_volume_and_best_price(buy_orders, buy_order=True)
+
+        logger.print(f'Product: {product} - best sell: {best_sell_price}, best buy: {best_buy_price}')
 
         position = self.POSITION[product]
         limit = self.LIMIT[product]
@@ -206,6 +210,9 @@ class Trader:
 
         bid_price = min(penny_buy, our_bid)
         ask_price = max(penny_sell, our_ask)
+
+        if orchild:
+            ask_price = max(best_sell_price-self.ORCHID_MM_RANGE, our_ask)
 
         # MARKET TAKE ASKS (buy items)
         for ask, vol in sell_orders.items():
@@ -237,6 +244,7 @@ class Trader:
 
         return orders
 
+    # def calculate_orchid_orders(self, orders, our_)
 
                       
     def calculate_vwap(self, orders):
@@ -260,6 +268,7 @@ class Trader:
         self.STARFRUIT_CACHE_SIZE = data.STARFRUIT_CACHE_SIZE
         self.AME_RANGE = data.AME_RANGE
         self.POSITION = data.POSITION
+        self.ORCHID_MM_RANGE = data.ORCHID_MM_RANGE
 
         # update our position 
         for product in state.order_depths:
@@ -291,13 +300,28 @@ class Trader:
                     lower_bound = self.estimate_starfruit_price(data.starfruit_cache)-2
                     upper_bound = self.estimate_starfruit_price(data.starfruit_cache)+2
 
-                logger.print(f'lower bound: {lower_bound}')
-                logger.print(f'upper bound: {upper_bound}')
-                
-
                 orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
+            
+            elif product == 'ORCHIDS':
+                shipping_cost = state.observations.conversionObservations['ORCHIDS'].transportFees
+                import_tariff = state.observations.conversionObservations['ORCHIDS'].importTariff
+                export_tariff = state.observations.conversionObservations['ORCHIDS'].exportTariff
+                ducks_ask = state.observations.conversionObservations['ORCHIDS'].askPrice
+                ducks_bid = state.observations.conversionObservations['ORCHIDS'].bidPrice
 
-                logger.print(f'placed orders: {orders}')
+                buy_from_ducks_prices = ducks_ask + shipping_cost + import_tariff
+                sell_to_ducks_prices = ducks_bid + shipping_cost + export_tariff
+
+                lower_bound = int(round(buy_from_ducks_prices))-1
+                upper_bound = int(round(buy_from_ducks_prices))+1
+
+                orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound, orchild=True)
+                conversions = -self.POSITION[product]
+
+                logger.print(f'buying from ducks for: {buy_from_ducks_prices}')
+                logger.print(f'selling to ducks for: {sell_to_ducks_prices}')
+
+            logger.print(f'placed orders: {orders}')
 
             # update orders for current product
             result[product] = orders
