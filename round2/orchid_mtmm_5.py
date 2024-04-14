@@ -201,7 +201,7 @@ class Trader:
 
         logger.print(f'Product: {product} - best sell: {best_sell_price}, best buy: {best_buy_price}')
 
-        position = self.POSITION[product]
+        position = self.POSITION[product] if not orchild else 0
         limit = self.LIMIT[product]
 
         # penny the current highest bid / lowest ask 
@@ -227,7 +227,8 @@ class Trader:
             orders.append(Order(product, bid_price, num_orders))
             position += num_orders
 
-        position = self.POSITION[product] # RESET POSITION
+        # RESET POSITION
+        position = self.POSITION[product] if not orchild else 0
 
         # MARKET TAKE BIDS (sell items)
         for bid, vol in buy_orders.items():
