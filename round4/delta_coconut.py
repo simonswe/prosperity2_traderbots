@@ -401,36 +401,29 @@ class Trader:
 
                 # 25-50 store
                 if len(data.COCONUT_STORE) >= data.COCONUT_STORE_SIZE:
-                    lower_bound = int(round(modified_bs))-1
-                    upper_bound = int(round(modified_bs))+1
 
-                    orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
-
-
-                    
-
-                    # curr_bs_est = self.black_scholes_estimate(S=mid_price['COCONUT'], K=10_000, T=250, r=0.001811, sigma=std, mean=mean)
-                    # prev_bs_est = self.black_scholes_estimate(S=data.PREV_COCONUT_PRICE, K=10_000, T=250, r=0.001811, sigma=std, mean=mean)
+                    curr_bs_est = self.black_scholes_estimate(S=mid_price['COCONUT'], K=10_000, T=250, r=0.001811, sigma=std, mean=mean)
+                    prev_bs_est = self.black_scholes_estimate(S=data.PREV_COCONUT_PRICE, K=10_000, T=250, r=0.001811, sigma=std, mean=mean)
 
 
-                    # delta = mid_price['COCONUT_COUPON'] > curr_bs_est
+                    delta = mid_price['COCONUT_COUPON'] > curr_bs_est
 
-                    # if delta == data.delta_signs:
-                    #     if data.time > 25:
-                    #         change = curr_bs_est - prev_bs_est
+                    if delta == data.delta_signs:
+                        if data.time > 25:
+                            change = curr_bs_est - prev_bs_est
 
-                    #         predicted_coupon_price = change + data.PREV_COUPON_PRICE
+                            predicted_coupon_price = change + data.PREV_COUPON_PRICE
 
-                    #         lower_bound = int(round(predicted_coupon_price))-1
-                    #         upper_bound = int(round(predicted_coupon_price))+1
+                            lower_bound = int(round(predicted_coupon_price))-1
+                            upper_bound = int(round(predicted_coupon_price))+1
 
-                    #         orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
+                            orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
 
-                    # else:
-                    #     data.time = 0
+                    else:
+                        data.time = 0
 
-                    # data.delta_signs = delta
-                    # data.time += 1
+                    data.delta_signs = delta
+                    data.time += 1
 
 
                     data.COCONUT_BS_STORE.pop(0)
