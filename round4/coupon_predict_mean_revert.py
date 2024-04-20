@@ -365,7 +365,7 @@ class Trader:
                 coconut_mean = data.COCONUT_SUM / data.ITERS
                 coupon_mean = data.COUPON_SUM / data.ITERS
 
-                predicted_coupon_price = (mid_price['COCONUT'] - coconut_mean) * 0.503 + coupon_mean
+                predicted_coupon_price = (mid_price['COCONUT'] - coconut_mean) * 0.5029 + coupon_mean
                 logger.print(f'predicted coupon price: {predicted_coupon_price}')
                 difference = mid_price['COCONUT_COUPON'] - predicted_coupon_price
 
