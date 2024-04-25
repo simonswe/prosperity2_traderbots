@@ -468,24 +468,7 @@ class Trader:
 
                 best_bid_price = max(order_depth.buy_orders.keys())
                 best_ask_price = min(order_depth.sell_orders.keys())
-                
-                if product in market_trades:
-                    for trade in market_trades[product]:
-                        if trade.buyer == buyer and trade.timestamp == timestamp-100:
-                            if follow: # buy PRODUCT because BOT did
-                                return self.calculate_orders(product, order_depth, best_ask_price, self.INF)
-                            else:
-                                return self.calculate_orders(product, order_depth, -self.INF, best_bid_price)
-
-                        elif trade.seller == buyer and trade.timestamp == timestamp-100:
-                            if follow: # sell PRODUCT because BOT did
-                                return self.calculate_orders(product, order_depth, -self.INF, best_bid_price)
-                            else:
-                                return self.calculate_orders(product, order_depth, best_ask_price, self.INF)
-                
-
-                # orders += self.follow_bot(product, 'Remy', state.market_trades, data.timestamp, order_depth, follow=False)
-                
+                orders += self.follow_bot(product, 'Remy', state.market_trades, best_bid_price, best_ask_price, data.timestamp, order_depth, follow=False)
 
 
             # update orders for current product
