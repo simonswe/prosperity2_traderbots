@@ -254,6 +254,7 @@ class Trader:
                         return self.calculate_orders(product, order_depth, -self.INF, best_bid_price)
                     else:
                         return self.calculate_orders(product, order_depth, best_ask_price, self.INF)
+        return []
 
     
 
