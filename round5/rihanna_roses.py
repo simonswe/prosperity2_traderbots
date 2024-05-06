@@ -332,7 +332,8 @@ class Trader:
             orders: list[Order] = []
             
             if product == "AMETHYSTS":
-                orders += self.calculate_orders(product, order_depth, 10000-self.AME_RANGE, 10000+self.AME_RANGE)
+                order_depth = order_depth
+                # orders += self.calculate_orders(product, order_depth, 10000-self.AME_RANGE, 10000+self.AME_RANGE)
             
             elif product == "STARFRUIT":
                 # keep the length of starfruit cache as STARFRUIT_CACHE_SIZE

@@ -173,6 +173,9 @@ class RecordedData:
 
         self.timestamp = 0
 
+        self.bot_bids = []
+        self.bot_asks = []
+
        
 
 
@@ -354,125 +357,116 @@ class Trader:
             orders: list[Order] = []
             
             if product == "AMETHYSTS":
-                order_depth = order_depth
-                # orders += self.calculate_orders(product, order_depth, 10000-self.AME_RANGE, 10000+self.AME_RANGE)
+                orders += self.calculate_orders(product, order_depth, 10000-self.AME_RANGE, 10000+self.AME_RANGE)
             
             elif product == "STARFRUIT":
-                orders += self.follow_bot(product, 'Vladimir', state.market_trades, data.timestamp, order_depth, follow=True)
-                orders += self.follow_bot(product, 'Valentina', state.market_trades, data.timestamp, order_depth, follow=True)
-                orders += self.follow_bot(product, 'Remy', state.market_trades, data.timestamp, order_depth, follow=False)
-                orders += self.follow_bot(product, 'Ruby', state.market_trades, data.timestamp, order_depth, follow=False)
+                bot = 'Vladimir'
+                windowsize = 15
 
-                # keep the length of starfruit cache as STARFRUIT_CACHE_SIZE
-                if len(data.starfruit_cache) == self.STARFRUIT_CACHE_SIZE:
-                    data.starfruit_cache.pop(0)
+                if product in state.market_trades:
+                    for trade in state.market_trades[product]:
+                        if trade.buyer == bot:
+                            data.bot_bids.append(trade.price)
+                        if trade.seller == bot:
+                            data.bot_asks.append(trade.price)
+                
+                if len(data.bot_asks) >= windowsize and len(data.bot_bids) >= windowsize:
+                    bot_sells, bot_buys = np.array(data.bot_asks), np.array(data.bot_bids)
 
-                # _, best_sell_price = self.get_volume_and_best_price(order_depth.sell_orders, buy_order=False)
-                # _, best_buy_price = self.get_volume_and_best_price(order_depth.buy_orders, buy_order=True)
+                    bot_buy_difference_moving_avg = (bot_buys[-1] - bot_buys[0]) / (windowsize-1)
+                    bot_sell_difference_moving_avg = (bot_sells[-1] - bot_buys[0]) / (windowsize-1)
 
-                # data.starfruit_cache.append((best_sell_price+best_buy_price)/2)
+                    bot_buy_prev_plus_moving_avg = bot_buys[-1] + bot_buy_difference_moving_avg
+                    bot_sell_prev_minus_moving_avg = bot_sells[-1] + bot_sell_difference_moving_avg
 
-                # # if cache size is maxed, calculate next price and place orders
-                # lower_bound = -self.INF
-                # upper_bound = self.INF
+                    orders += self.calculate_orders(product, order_depth, 
+                                int(round(bot_buy_prev_plus_moving_avg))-1, int(round(bot_sell_prev_minus_moving_avg)+1))
 
-                # if len(data.starfruit_cache) == self.STARFRUIT_CACHE_SIZE:
-                #     lower_bound = self.estimate_lobf_price(data.starfruit_cache)-2
-                #     upper_bound = self.estimate_lobf_price(data.starfruit_cache)+2
-
-                # orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound)
+                    data.bot_bids.pop(0)
+                    data.bot_asks.pop(0)
             
             elif product == 'ORCHIDS':
                 shipping_cost = state.observations.conversionObservations['ORCHIDS'].transportFees
-                # import_tariff = state.observations.conversionObservations['ORCHIDS'].importTariff
-                # export_tariff = state.observations.conversionObservations['ORCHIDS'].exportTariff
-                # ducks_ask = state.observations.conversionObservations['ORCHIDS'].askPrice
-                # ducks_bid = state.observations.conversionObservations['ORCHIDS'].bidPrice
+                import_tariff = state.observations.conversionObservations['ORCHIDS'].importTariff
+                export_tariff = state.observations.conversionObservations['ORCHIDS'].exportTariff
+                ducks_ask = state.observations.conversionObservations['ORCHIDS'].askPrice
+                ducks_bid = state.observations.conversionObservations['ORCHIDS'].bidPrice
 
-                # buy_from_ducks_prices = ducks_ask + shipping_cost + import_tariff
-                # sell_to_ducks_prices = ducks_bid + shipping_cost + export_tariff
+                buy_from_ducks_prices = ducks_ask + shipping_cost + import_tariff
+                sell_to_ducks_prices = ducks_bid + shipping_cost + export_tariff
 
-                # lower_bound = int(round(buy_from_ducks_prices))-1
-                # upper_bound = int(round(buy_from_ducks_prices))+1
+                lower_bound = int(round(buy_from_ducks_prices))-1
+                upper_bound = int(round(buy_from_ducks_prices))+1
 
-                # orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound, orchild=True)
-                # conversions = -self.POSITION[product]
-            
-            elif product == 'GIFT_BASKET':
-                basket_items = ['GIFT_BASKET', 'CHOCOLATE', 'STRAWBERRIES', 'ROSES']
-                # mid_price = {}
-                # worst_bid_price, worst_ask_price, best_bid_price, best_ask_price = {}, {}, {}, {}
-
-                # for item in basket_items:
-                #     _, best_sell_price = self.get_volume_and_best_price(state.order_depths[item].sell_orders, buy_order=False)
-                #     _, best_buy_price = self.get_volume_and_best_price(state.order_depths[item].buy_orders, buy_order=True)
-
-                #     mid_price[item] = (best_sell_price+best_buy_price)/2
-
-                #     worst_bid_price[item] = min(state.order_depths[item].buy_orders.keys())
-                #     worst_ask_price[item] = max(state.order_depths[item].sell_orders.keys())
-                #     best_bid_price[item] = max(state.order_depths[item].buy_orders.keys())
-                #     best_ask_price[item] = min(state.order_depths[item].sell_orders.keys())
-
-                # basket_minus_content = mid_price['GIFT_BASKET'] - 4*mid_price['CHOCOLATE'] - 6*mid_price['STRAWBERRIES'] - mid_price['ROSES']
-                # data.BASKET_DIFFERENCE_STORE.append(basket_minus_content)
-
-                # if len(data.BASKET_DIFFERENCE_STORE) >= data.BASKET_DIFFERENCE_STORES_SIZE:
-                #     basket_minus_content_mean, basket_minus_content_std = np.mean(data.BASKET_DIFFERENCE_STORE), np.std(data.BASKET_DIFFERENCE_STORE)
-
-                #     difference = basket_minus_content - basket_minus_content_mean
-
-                #     if difference > data.PERCENT_OF_STD_TO_TRADE_AT * basket_minus_content_std:
-                #         # basket overvalued, sell
-                #         orders += self.calculate_orders(product, order_depth, -self.INF, best_bid_price['GIFT_BASKET'], mm_at_our_price=True)
-            
-                #     elif difference < -data.PERCENT_OF_STD_TO_TRADE_AT * basket_minus_content_std:
-                #         # basket undervalued, buy
-                #         orders += self.calculate_orders(product, order_depth, best_ask_price['GIFT_BASKET'], self.INF, mm_at_our_price=True)
-
-                #     data.BASKET_DIFFERENCE_STORE.pop(0)
+                orders += self.calculate_orders(product, order_depth, lower_bound, upper_bound, orchild=True)
+                conversions = -self.POSITION[product]
 
             elif product == 'COCONUT_COUPON':
                 items = ['COCONUT', 'COCONUT_COUPON']
-                # mid_price, best_bid_price, best_ask_price = {}, {}, {}
+                mid_price, best_bid_price, best_ask_price = {}, {}, {}
 
-                # for item in items:
-                #     _, best_sell_price = self.get_volume_and_best_price(state.order_depths[item].sell_orders, buy_order=False)
-                #     _, best_buy_price = self.get_volume_and_best_price(state.order_depths[item].buy_orders, buy_order=True)
+                for item in items:
+                    _, best_sell_price = self.get_volume_and_best_price(state.order_depths[item].sell_orders, buy_order=False)
+                    _, best_buy_price = self.get_volume_and_best_price(state.order_depths[item].buy_orders, buy_order=True)
 
-                #     mid_price[item] = (best_sell_price+best_buy_price)/2
-                #     best_bid_price[item] = best_buy_price
-                #     best_ask_price[item] = best_sell_price
+                    mid_price[item] = (best_sell_price+best_buy_price)/2
+                    best_bid_price[item] = best_buy_price
+                    best_ask_price[item] = best_sell_price
 
-                # iv = self.newtons_method(lambda sigma: self.black_scholes_price(mid_price['COCONUT'], 10_000, 250, 0, sigma) - mid_price['COCONUT_COUPON'])
-                # data.COUPON_IV_STORE.append(iv)
+                iv = self.newtons_method(lambda sigma: self.black_scholes_price(mid_price['COCONUT'], 10_000, 250, 0, sigma) - mid_price['COCONUT_COUPON'])
+                data.COUPON_IV_STORE.append(iv)
 
-                # if len(data.COUPON_IV_STORE) >= data.COUPON_IV_STORE_SIZE:
-                #     iv_mean, iv_std = np.mean(data.COUPON_IV_STORE), np.std(data.COUPON_IV_STORE)
+                if len(data.COUPON_IV_STORE) >= data.COUPON_IV_STORE_SIZE:
+                    iv_mean, iv_std = np.mean(data.COUPON_IV_STORE), np.std(data.COUPON_IV_STORE)
 
-                #     difference = iv - iv_mean
+                    difference = iv - iv_mean
 
-                #     if difference > data.COUPON_Z_SCORE * iv_std:
-                #         # iv too high, overpriced, sell
-                #         orders += self.calculate_orders(product, order_depth, -self.INF, best_bid_price['COCONUT_COUPON'])
+                    if difference > data.COUPON_Z_SCORE * iv_std:
+                        # iv too high, overpriced, sell
+                        orders += self.calculate_orders(product, order_depth, -self.INF, best_bid_price['COCONUT_COUPON'])
                         
-                #     elif difference < -data.COUPON_Z_SCORE * iv_std:
-                #         # iv too low, underpriced, buy
-                #         orders += self.calculate_orders(product, order_depth, best_ask_price['COCONUT_COUPON'], self.INF)
+                    elif difference < -data.COUPON_Z_SCORE * iv_std:
+                        # iv too low, underpriced, buy
+                        orders += self.calculate_orders(product, order_depth, best_ask_price['COCONUT_COUPON'], self.INF)
 
-                #     # data.COCONUT_BS_STORE.pop(0)
-                #     # data.COCONUT_STORE.pop(0)
-                #     data.COUPON_IV_STORE.pop(0)
+                    # data.COCONUT_BS_STORE.pop(0)
+                    # data.COCONUT_STORE.pop(0)
+                    data.COUPON_IV_STORE.pop(0)
 
-                # data.PREV_COCONUT_PRICE = mid_price['COCONUT']
-                # data.PREV_COUPON_PRICE = mid_price['COCONUT_COUPON']
+                data.PREV_COCONUT_PRICE = mid_price['COCONUT']
+                data.PREV_COUPON_PRICE = mid_price['COCONUT_COUPON']
 
-            elif product == 'STRAWBERRIES':
-                orders += self.follow_bot(product, 'Vinnie', state.market_trades, data.timestamp, order_depth, follow=True)
+            # elif product == 'STRAWBERRIES':
+            #     orders += self.follow_bot(product, 'Vinnie', state.market_trades, data.timestamp, order_depth, follow=True)
             
             elif product == 'ROSES':
                 orders += self.follow_bot(product, 'Rhianna', state.market_trades, data.timestamp, order_depth, follow=True)
                 
+            elif product == 'STRAWBERRIES':
+                bot = 'Vinnie'
+                windowsize = 15
+
+                if product in state.market_trades:
+                    for trade in state.market_trades[product]:
+                        if trade.buyer == bot:
+                            data.bot_bids.append(trade.price)
+                        if trade.seller == bot:
+                            data.bot_asks.append(trade.price)
+                
+                if len(data.bot_asks) >= windowsize and len(data.bot_bids) >= windowsize:
+                    bot_sells, bot_buys = np.array(data.bot_asks), np.array(data.bot_bids)
+
+                    bot_buy_difference_moving_avg = (bot_buys[-1] - bot_buys[0]) / (windowsize-1)
+                    bot_sell_difference_moving_avg = (bot_sells[-1] - bot_buys[0]) / (windowsize-1)
+
+                    bot_buy_prev_plus_moving_avg = bot_buys[-1] + bot_buy_difference_moving_avg
+                    bot_sell_prev_minus_moving_avg = bot_sells[-1] + bot_sell_difference_moving_avg
+
+                    orders += self.calculate_orders(product, order_depth, 
+                                int(round(bot_buy_prev_plus_moving_avg))-1, int(round(bot_sell_prev_minus_moving_avg)+1))
+
+                    data.bot_bids.pop(0)
+                    data.bot_asks.pop(0)
 
 
             # update orders for current product
